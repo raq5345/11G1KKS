@@ -1,0 +1,6 @@
+Todo:
+add a search function back
+add the login function back
+FILE UPLOAD: make subfolders possible \ 
+ref:
+    current_folder = request.args.get('folder', '')  # This should be a relative path like 'De/De1'

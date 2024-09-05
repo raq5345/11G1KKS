@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+    <style>
+        body {
+            display: flex;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav {
+            width: 100%;
+            background-color: #333;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+
+        .sidebar {
+            width: 200px;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-right: 1px solid #ddd;
+            margin-top: 40px;
+        }
+
+        .sidebar h3 {
+            margin-top: 0;
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .sidebar ul li {
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        ul {
+            padding: 0;
+        }
+
+        ul li {
+            list-style: none;
+            padding: 10px;
+            margin-bottom: 5px;
+            border: 1px solid #ddd;
+            background-color: #f8f8f8;
+        }
+
+        ul li.success {
+            border-color: green;
+            color: green;
+        }
+
+        ul li.error {
+            border-color: red;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('files') }}">Files</a>
+        <a href="{{ url_for('search') }}">Search Folders</a>
+    </nav>
+    
+
+    <div class="sidebar">
+        <h3>Available Folders</h3>
+        <ul id="folder-list">
+            {% for folder in folders %}
+                <li onclick="loadFolderFiles('{{ folder }}')">{{ folder }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="content">
+        <h2>Create Folder</h2>
+        <form method="POST" action="{{ url_for('home') }}">
+            {{ folder_form.hidden_tag() }}
+            {{ folder_form.parent_folder.label }}<br>
+            <select name="parent_folder">
+                <option value="">-- Root --</option>
+                {% for folder in folders %}
+                    <option value="{{ folder }}">{{ folder }}</option>
+                {% endfor %}
+            </select><br>
+            {{ folder_form.new_folder.label }}<br>
+            {{ folder_form.new_folder(size=40) }}<br>
+            {{ folder_form.submit() }}
+        </form>
+
+        <h2>Upload File</h2>
+        <form method="POST" action="{{ url_for('home') }}" enctype="multipart/form-data">
+            {{ upload_form.hidden_tag() }}
+            {{ upload_form.folder.label }}<br>
+            <!-- Folder input field that will be populated when a folder is clicked -->
+            {{ upload_form.folder(size=40, id="folder-input") }}<br>
+            {{ upload_form.file.label }}<br>
+            {{ upload_form.file() }}<br>
+            {{ upload_form.custom_name.label }} (Optional)<br>
+            {{ upload_form.custom_name(size=40) }}<br>
+            {{ upload_form.submit() }}
+        </form>
+
+        <h2>Files in Folder</h2>
+        <ul id="file-list">
+            <!-- Files will be dynamically loaded here -->
+        </ul>
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+        <script>
+            $(function () {
+                var availableFolders = [
+                    {% for folder in folders %}
+                        "{{ folder }}",
+                    {% endfor %}
+                ];
+                $("#folder-input").autocomplete({
+                    source: availableFolders,
+                    minLength: 1
+                });
+            });
+
+function loadFolderFiles(folderName) {
+    // Replace backslashes with forward slashes in the folder name
+    folderName = folderName.replace(/\\/g, '/');
+    
+    // Populate the folder input field with the clicked folder name
+    $("#folder-input").val(folderName);
+
+    // Load the files via AJAX
+    $.ajax({
+        url: "{{ url_for('files') }}",
+        type: "GET",
+        data: { folder: folderName },
+        success: function(response) {
+            $('#file-list').html('');
+            if (response.files && response.files.length > 0) {
+                response.files.forEach(function(file) {
+                    $('#file-list').append('<li>' + file + '</li>');
+                });
+            } else {
+                $('#file-list').append('<li>No files in this folder.</li>');
+            }
+        },
+        error: function() {
+            alert("Error loading files.");
+        }
+    });
+}
+
+        </script>
+
+        <ul>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </ul>
+    </div>
+</body>
+</html>
